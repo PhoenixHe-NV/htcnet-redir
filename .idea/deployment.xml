@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always">
+    <serverData>
+      <paths name="sg-az remote (4cd1a75e-8cfb-4eeb-90b2-01f1ff469bb6)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/tmp.9Sy8XoOFFB" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>
