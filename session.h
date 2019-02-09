@@ -34,5 +34,6 @@ void session_touch(session_t *current);
 session_t* session_create(uv_loop_t* loop);
 void session_end(session_t* current);
 void session_clear_timeout(time_t timeout);
+uint32_t get_session_count();
 
 #endif //HTCNET_REDIR_SESSION_H

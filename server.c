@@ -15,8 +15,8 @@ static void new_conn_log(uv_tcp_t* client, struct sockaddr_storage* orig_dst, st
   char orig_dst_str[INET6_ADDRSTRLEN], orig_src_str[INET6_ADDRSTRLEN];
   get_addr_str(orig_dst, orig_dst_str);
   get_addr_str(orig_src, orig_src_str);
-  fprintf(stderr, "%p: N %s:%d to %s:%d\n",
-    client->data, orig_src_str, get_addr_port(orig_src), orig_dst_str, get_addr_port(orig_dst));
+  fprintf(stderr, "%p: + C:%d %s:%d to %s:%d\n",
+    client->data, get_session_count(), orig_src_str, get_addr_port(orig_src), orig_dst_str, get_addr_port(orig_dst));
 }
 
 static void alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {

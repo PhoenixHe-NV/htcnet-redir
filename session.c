@@ -11,6 +11,8 @@
 
 static session_t active_list;
 
+static uint32_t session_count;
+
 static void init_list(session_t* session_list) {
   session_list->next = session_list;
   session_list->prev = session_list;
@@ -50,7 +52,8 @@ static void close_conn_cb(uv_handle_t* uv_tcp) {
     // All closed, we can free our session
     free(session);
 
-    fprintf(stderr, "%p: E\n", session);
+    session_count--;
+    fprintf(stderr, "%p: - C:%d\n", session, session_count);
   }
 }
 
@@ -63,6 +66,10 @@ void session_touch(session_t* current) {
   remove_session_from_list(current);
   set_session_last_update(current);
   add_session_to_tail(&active_list, current);
+}
+
+uint32_t get_session_count() {
+  return session_count;
 }
 
 session_t* session_create(uv_loop_t* loop) {
@@ -83,6 +90,7 @@ session_t* session_create(uv_loop_t* loop) {
 
   set_session_last_update(current);
   add_session_to_tail(&active_list, current);
+  session_count++;
 
   return current;
 
@@ -126,7 +134,7 @@ void session_clear_timeout(time_t timeout) {
       fprintf(stderr, "--- Timeout Clear Start --- \n");
     }
 
-    remove_session_from_list(head);
+    session_end(head);
   }
 
 end:
@@ -143,6 +151,8 @@ static void session_check_idle_cb(uv_idle_t* handle) {
 
 void session_init(uv_loop_t* loop) {
   init_list(&active_list);
+
+  session_count = 0;
 
   uv_idle_init(loop, &session_check_idle);
   uv_idle_start(&session_check_idle, session_check_idle_cb);
