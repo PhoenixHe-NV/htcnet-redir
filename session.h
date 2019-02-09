@@ -8,17 +8,28 @@
 #include <time.h>
 #include <uv.h>
 
-typedef struct session {
-  struct session* prev;
-  struct session* next;
+#define SESSION_BUF_SIZE 65536
+
+typedef struct session_copy_s {
+  uv_tcp_t uv_tcp;
+  uv_write_t pair_write_req;
+  uv_buf_t uv_buf;
+  char buf[SESSION_BUF_SIZE];
+} session_copy_t;
+
+typedef struct session_s {
+  struct session_s* prev;
+  struct session_s* next;
   time_t lastUpdate;
 
-  uv_tcp_t client;
-  uv_tcp_t remote;
-  uv_connect_t req;
+  uv_connect_t remote_connect_req;
+  session_copy_t client, remote;
 } session_t;
 
-void session_init();
+#define SESSION_PAIR(session, session_copy) \
+  (&session->client == session_copy ? &session->remote  : &session->client )
+
+void session_init(uv_loop_t* loop);
 void session_touch(session_t *current);
 session_t* session_create(uv_loop_t* loop);
 void session_end(session_t* current);

@@ -50,7 +50,7 @@ static void close_conn_cb(uv_handle_t* uv_tcp) {
     // All closed, we can free our session
     free(session);
 
-    fprintf(stderr, "%p: Session closed", session);
+    fprintf(stderr, "%p: E\n", session);
   }
 }
 
@@ -65,7 +65,6 @@ void session_touch(session_t* current) {
   add_session_to_tail(&active_list, current);
 }
 
-
 session_t* session_create(uv_loop_t* loop) {
   session_t* current = malloc(sizeof(session_t));
   if (current == NULL) {
@@ -75,12 +74,12 @@ session_t* session_create(uv_loop_t* loop) {
 
   memset(current, 0, sizeof(session_t));
 
-  current->client.data = current;
-  current->remote.data = current;
-  current->req.data = current;
+  current->client.uv_tcp.data = current;
+  current->remote.uv_tcp.data = current;
+  current->remote_connect_req.data = current;
 
-  UV_CHECK_GOTO("uv_tcp_init client", session_create_error, uv_tcp_init(loop, &current->client));
-  UV_CHECK_GOTO("uv_tcp_init remote", session_create_error1, uv_tcp_init(loop, &current->remote));
+  UV_CHECK_GOTO("uv_tcp_init client", session_create_error, uv_tcp_init(loop, &current->client.uv_tcp));
+  UV_CHECK_GOTO("uv_tcp_init remote", session_create_error1, uv_tcp_init(loop, &current->remote.uv_tcp));
 
   set_session_last_update(current);
   add_session_to_tail(&active_list, current);
@@ -97,6 +96,11 @@ session_create_error:
 }
 
 void session_end(session_t* current) {
+  if (current->prev == NULL && current->next == NULL) {
+    // Disposing
+    return;
+  }
+
   remove_session_from_list(current);
 
   uv_ref((uv_handle_t *) &current->client);
@@ -110,16 +114,36 @@ void session_clear_timeout(time_t timeout) {
   time_t threshold;
   time(&threshold);
   threshold = threshold - timeout;
+  bool cleared = 0;
 
   while (true) {
     session_t* head = active_list.next;
     if (head == &active_list || head->lastUpdate > threshold) {
-      return;
+      goto end;
     }
+    if (!cleared) {
+      cleared = 1;
+      fprintf(stderr, "--- Timeout Clear Start --- \n");
+    }
+
     remove_session_from_list(head);
+  }
+
+end:
+  if (cleared) {
+    fprintf(stderr, "--- Timeout Clear Stop --- \n");
   }
 }
 
-void session_init() {
+static uv_idle_t session_check_idle;
+
+static void session_check_idle_cb(uv_idle_t* handle) {
+  session_clear_timeout(120);
+}
+
+void session_init(uv_loop_t* loop) {
   init_list(&active_list);
+
+  uv_idle_init(loop, &session_check_idle);
+  uv_idle_start(&session_check_idle, session_check_idle_cb);
 }

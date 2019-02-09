@@ -10,6 +10,7 @@
 
 int uv_print_error(char* desc, int code) {
   fprintf(stderr, "Error: %s: %s\n", desc, uv_err_name(code));
+  return 0;
 }
 
 int uv_get_fd(uv_handle_t* t) {

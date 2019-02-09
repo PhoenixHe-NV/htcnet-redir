@@ -15,17 +15,53 @@ static void new_conn_log(uv_tcp_t* client, struct sockaddr_storage* orig_dst, st
   char orig_dst_str[INET6_ADDRSTRLEN], orig_src_str[INET6_ADDRSTRLEN];
   get_addr_str(orig_dst, orig_dst_str);
   get_addr_str(orig_src, orig_src_str);
-  fprintf(stderr, "%p: Accept new connection from %s:%d to %s:%d\n",
-    client, orig_src_str, get_addr_port(orig_src), orig_dst_str, get_addr_port(orig_dst));
+  fprintf(stderr, "%p: N %s:%d to %s:%d\n",
+    client->data, orig_src_str, get_addr_port(orig_src), orig_dst_str, get_addr_port(orig_dst));
 }
 
-static void close_conn_cb(uv_handle_t* client) {
-  fprintf(stderr, "%p: Connection closed\n", client);
-  free(client);
+static void alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+  session_copy_t* session_copy = (session_copy_t *) handle;
+  buf->base = session_copy->buf;
+  buf->len = SESSION_BUF_SIZE;
 }
 
-static void conn_copy(uv_tcp_t* dst, uv_tcp_t* src) {
-  session_t* session = dst->data;
+static void write_cb(uv_write_t* req, int status);
+
+static void read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
+  if (nread == 0) {
+    return;
+  }
+
+  session_t* session = stream->data;
+  if (nread < 0) {
+    // EOF or Error
+    session_end(session);
+    return;
+  }
+  session_touch(session);
+
+  uv_read_stop(stream);
+
+  session_copy_t* session_copy = (session_copy_t *) stream;
+  session_copy_t* pair = SESSION_PAIR(session, session_copy);
+  session_copy->uv_buf.base = buf->base;
+  session_copy->uv_buf.len = (size_t) nread;
+  uv_write(&session_copy->pair_write_req, (uv_stream_t *) &pair->uv_tcp, &session_copy->uv_buf, 1, write_cb);
+}
+
+static void write_cb(uv_write_t* req, int status) {
+  session_copy_t* pair = (session_copy_t *) req->handle;
+  session_t* session = pair->uv_tcp.data;
+
+  if (status < 0) {
+    // Error
+    session_end(session);
+    return;
+  }
+  session_touch(session);
+
+  session_copy_t* session_copy = SESSION_PAIR(session, pair);
+  uv_read_start((uv_stream_t *) &session_copy->uv_tcp, alloc_cb, read_cb);
 }
 
 static void remote_connect_cb(uv_connect_t* req, int status) {
@@ -37,7 +73,13 @@ static void remote_connect_cb(uv_connect_t* req, int status) {
     return;
   }
 
+  uv_tcp_nodelay(&session->client.uv_tcp, 1);
+  uv_tcp_nodelay(&session->remote.uv_tcp, 1);
+
   session_touch(session);
+
+  uv_read_start((uv_stream_t*) &session->client.uv_tcp, alloc_cb, read_cb);
+  uv_read_start((uv_stream_t*) &session->remote.uv_tcp, alloc_cb, read_cb);
 }
 
 static void new_connection_cb(uv_stream_t* server, int status) {
@@ -51,8 +93,8 @@ static void new_connection_cb(uv_stream_t* server, int status) {
     return;
   }
 
-  uv_tcp_t* client = &session->client;
-  uv_tcp_t* remote = &session->remote;
+  uv_tcp_t* client = &session->client.uv_tcp;
+  uv_tcp_t* remote = &session->remote.uv_tcp;
 
   // Accept new connection
   UV_CHECK_GOTO("uv_accept", close_conn, uv_accept(server, (uv_stream_t *) client));
@@ -68,7 +110,9 @@ static void new_connection_cb(uv_stream_t* server, int status) {
   new_conn_log(client, &orig_dst, &orig_src);
 
   // Connect to remote
-  uv_tcp_connect(&session->req, remote, (const struct sockaddr *) &orig_dst, remote_connect_cb);
+  uv_tcp_connect(&session->remote_connect_req, remote, (const struct sockaddr *) &orig_dst, remote_connect_cb);
+
+  return;
 
 close_conn:
   session_end(session);
@@ -76,11 +120,13 @@ close_conn:
 
 int server_listen_init(uv_loop_t *loop, uv_tcp_t *server, int port) {
   struct sockaddr_in bind_addr;
-  UV_CHECK("uv_ip4_addr", uv_ip4_addr("127.0.0.1", port, &bind_addr));
+  UV_CHECK("uv_ip4_addr", uv_ip4_addr("0.0.0.0", port, &bind_addr));
 
   UV_CHECK("uv_tcp_init", uv_tcp_init(loop, server));
 
   UV_CHECK("uv_tcp_bind", uv_tcp_bind(server, (struct sockaddr *) &bind_addr, 0));
 
   UV_CHECK("uv_listen", uv_listen((uv_stream_t*) server, 30, new_connection_cb));
+
+  return 0;
 }

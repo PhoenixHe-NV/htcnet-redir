@@ -18,10 +18,13 @@ void wait_for_a_while(uv_idle_t* handle) {
 
 int main() {
 
-  session_init();
+  signal(SIGPIPE, SIG_IGN);
+
 
   uv_loop_t* loop = uv_default_loop();
   uv_tcp_t server;
+
+  session_init(loop);
 
   if (server_listen_init(loop, &server, 9007)) {
     return -1;

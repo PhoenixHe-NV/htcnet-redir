@@ -6,6 +6,7 @@
 #define HTCNET_REDIR_UTILS_H
 
 #include <errno.h>
+#include <uv.h>
 
 int uv_print_error(char* desc, int code);
 int uv_get_fd(uv_handle_t* handle);
