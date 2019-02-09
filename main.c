@@ -5,28 +5,21 @@
 #include "session.h"
 #include "server.h"
 
-int64_t counter = 0;
-
-void wait_for_a_while(uv_idle_t* handle) {
-  counter++;
-
-//  if (counter >= 10e6) {
-//    uv_idle_stop(handle);
-//  }
-}
-
-
-int main() {
+int main(int argc, char* argv[]) {
+  if (argc < 2) {
+    fprintf(stdout, "Usage: %s <PORT>", argv[0]);
+    exit(-1);
+  }
+  int port = (int) strtol(argv[1], NULL, 10);
 
   signal(SIGPIPE, SIG_IGN);
-
 
   uv_loop_t* loop = uv_default_loop();
   uv_tcp_t server;
 
   session_init(loop);
 
-  if (server_listen_init(loop, &server, 9007)) {
+  if (server_listen_init(loop, &server, port)) {
     return -1;
   }
 
