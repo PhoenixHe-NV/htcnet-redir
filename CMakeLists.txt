@@ -7,6 +7,7 @@ add_executable(htcnet_redir
   main.c
   server.c server.h
   utils.c utils.h
-  session.c session.h)
+  session.c session.h
+  buf.c buf.h)
 
 target_link_libraries(htcnet_redir uv)

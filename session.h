@@ -7,14 +7,14 @@
 
 #include <time.h>
 #include <uv.h>
+#include "buf.h"
 
-#define SESSION_BUF_SIZE 65536
 
 typedef struct session_copy_s {
   uv_tcp_t uv_tcp;
   uv_write_t pair_write_req;
   uv_buf_t uv_buf;
-  char buf[SESSION_BUF_SIZE];
+  buf_ref copy_buf_ref;
 } session_copy_t;
 
 typedef struct session_s {

@@ -10,6 +10,7 @@
 #include "utils.h"
 #include "session.h"
 #include "server.h"
+#include "buf.h"
 
 static void new_conn_log(uv_tcp_t* client, struct sockaddr_storage* orig_dst, struct sockaddr_storage* orig_src) {
   char orig_dst_str[INET6_ADDRSTRLEN], orig_src_str[INET6_ADDRSTRLEN];
@@ -21,8 +22,10 @@ static void new_conn_log(uv_tcp_t* client, struct sockaddr_storage* orig_dst, st
 
 static void alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
   session_copy_t* session_copy = (session_copy_t *) handle;
-  buf->base = session_copy->buf;
-  buf->len = SESSION_BUF_SIZE;
+
+  buf_alloc(suggested_size, &session_copy->copy_buf_ref);
+  buf->base = session_copy->copy_buf_ref.data;
+  buf->len = session_copy->copy_buf_ref.size;
 }
 
 static void write_cb(uv_write_t* req, int status);
@@ -52,6 +55,9 @@ static void read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
 static void write_cb(uv_write_t* req, int status) {
   session_copy_t* pair = (session_copy_t *) req->handle;
   session_t* session = pair->uv_tcp.data;
+  session_copy_t* session_copy = SESSION_PAIR(session, pair);
+
+  buf_free(&session_copy->copy_buf_ref);
 
   if (status < 0) {
     // Error
@@ -60,7 +66,6 @@ static void write_cb(uv_write_t* req, int status) {
   }
   session_touch(session);
 
-  session_copy_t* session_copy = SESSION_PAIR(session, pair);
   uv_read_start((uv_stream_t *) &session_copy->uv_tcp, alloc_cb, read_cb);
 }
 
