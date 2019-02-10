@@ -51,9 +51,6 @@ static void close_conn_cb(uv_handle_t* uv_tcp) {
     && uv_has_ref((uv_handle_t*) &session->remote) == 0) {
     // All closed, we can free our session
     free(session);
-
-    session_count--;
-    fprintf(stderr, "%p: - C:%d\n", session, session_count);
   }
 }
 
@@ -116,6 +113,9 @@ void session_end(session_t* current) {
 
   uv_close((uv_handle_t *) &current->client, close_conn_cb);
   uv_close((uv_handle_t *) &current->remote, close_conn_cb);
+
+  session_count--;
+  fprintf(stderr, "%p: - C:%d\n", current, session_count);
 }
 
 void session_clear_timeout(time_t timeout) {
@@ -143,9 +143,9 @@ end:
   }
 }
 
-static uv_idle_t session_check_idle;
+static uv_check_t session_check;
 
-static void session_check_idle_cb(uv_idle_t* handle) {
+static void session_check_cb(uv_check_t* handle) {
   session_clear_timeout(120);
 }
 
@@ -154,6 +154,6 @@ void session_init(uv_loop_t* loop) {
 
   session_count = 0;
 
-  uv_idle_init(loop, &session_check_idle);
-  uv_idle_start(&session_check_idle, session_check_idle_cb);
+  uv_check_init(loop, &session_check);
+  uv_check_start(&session_check, session_check_cb);
 }
