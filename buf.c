@@ -27,7 +27,7 @@ static buf_block* buf_block_alloc(size_t suggested_size) {
   } else {
     block = malloc(sizeof(buf_block) + suggested_size);
     block->block_size = suggested_size;
-    fprintf(stderr, "buf_block_alloc %p\n", block);
+    fprintf(stderr, "buf_block_alloc %p C:%zu\n", block, buf_block_free_count);
   }
 
   block->ref_count = 0;
@@ -39,7 +39,7 @@ static buf_block* buf_block_alloc(size_t suggested_size) {
 
 static void buf_block_free(buf_block* block) {
   if (buf_block_free_count >= BUF_BLOCK_FREE_THRESHOLD) {
-    fprintf(stderr, "buf_block_free %p\n", block);
+    fprintf(stderr, "buf_block_free %p C:%zu\n", block, buf_block_free_count);
     free(block);
     return;
   }
@@ -47,14 +47,6 @@ static void buf_block_free(buf_block* block) {
   block->next = buf_block_free_head;
   buf_block_free_head = block;
   buf_block_free_count++;
-}
-
-static buf_block* buf_block_cur_get() {
-  if (buf_block_cur == NULL) {
-    buf_block_cur = buf_block_alloc(BUF_BLOCK_SIZE);
-  }
-
-  return buf_block_cur;
 }
 
 static buf_block* buf_block_cur_realloc() {
@@ -69,8 +61,8 @@ void buf_alloc(size_t suggested_size, buf_ref* ref) {
     size = BUF_BLOCK_SIZE;
   }
 
-  buf_block* block = buf_block_cur_get();
-  if (block->block_size - block->cur_end < size) {
+  buf_block* block = buf_block_cur;
+  if (buf_block_cur == NULL || block->block_size - block->cur_end < size) {
     block = buf_block_cur_realloc();
   }
 

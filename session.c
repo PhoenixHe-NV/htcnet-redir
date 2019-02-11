@@ -106,6 +106,9 @@ void session_end(session_t* current) {
     return;
   }
 
+  buf_free(&current->client.copy_buf_ref);
+  buf_free(&current->remote.copy_buf_ref);
+
   remove_session_from_list(current);
 
   uv_ref((uv_handle_t *) &current->client);
@@ -146,7 +149,7 @@ end:
 static uv_check_t session_check;
 
 static void session_check_cb(uv_check_t* handle) {
-  session_clear_timeout(120);
+  session_clear_timeout(600);
 }
 
 void session_init(uv_loop_t* loop) {

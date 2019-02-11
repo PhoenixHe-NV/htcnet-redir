@@ -57,8 +57,6 @@ static void write_cb(uv_write_t* req, int status) {
   session_t* session = pair->uv_tcp.data;
   session_copy_t* session_copy = SESSION_PAIR(session, pair);
 
-  buf_free(&session_copy->copy_buf_ref);
-
   if (status < 0) {
     // Error
     session_end(session);
@@ -66,6 +64,7 @@ static void write_cb(uv_write_t* req, int status) {
   }
   session_touch(session);
 
+  buf_free(&session_copy->copy_buf_ref);
   uv_read_start((uv_stream_t *) &session_copy->uv_tcp, alloc_cb, read_cb);
 }
 
@@ -109,7 +108,7 @@ static void new_connection_cb(uv_stream_t* server, int status) {
   struct sockaddr_storage orig_dst, orig_src;
   SYS_CHECK_GOTO("get original dst addr", close_conn, get_org_dst_addr(local_fd, &orig_dst));
 
-  int orig_src_len;
+  int orig_src_len = sizeof(struct sockaddr_storage);
   UV_CHECK_GOTO("uv_tcp_getpeername", close_conn, uv_tcp_getpeername(client, (struct sockaddr *) &orig_src, &orig_src_len));
 
   new_conn_log(client, &orig_dst, &orig_src);
