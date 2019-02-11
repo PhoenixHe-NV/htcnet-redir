@@ -24,8 +24,8 @@ int uv_get_fd(uv_handle_t* t) {
   return local_fd;
 }
 
-int get_org_dst_addr(int sock_fd, struct sockaddr_storage *orig_dst){
-  socklen_t addr_len = sizeof(*orig_dst);
+int get_org_dst_addr(int sock_fd, struct sockaddr_in* orig_dst){
+  socklen_t addr_len = sizeof(struct sockaddr_in);
 
   memset(orig_dst, 0, addr_len);
 
@@ -48,26 +48,6 @@ int get_org_dst_addr(int sock_fd, struct sockaddr_storage *orig_dst){
   return 0;
 }
 
-void get_addr_str(struct sockaddr_storage *addr, char *addr_str) {
-  if(addr->ss_family == AF_INET){
-    inet_ntop(AF_INET, &(((struct sockaddr_in*) addr)->sin_addr), addr_str, INET_ADDRSTRLEN);
-
-  } else if (addr->ss_family == AF_INET6){
-    inet_ntop(AF_INET6, &(((struct sockaddr_in6*) addr)->sin6_addr), addr_str, INET6_ADDRSTRLEN);
-
-  } else {
-    strncpy(addr_str, "(Invalid)", INET6_ADDRSTRLEN);
-  }
-}
-
-int get_addr_port(struct sockaddr_storage *addr) {
-  if(addr->ss_family == AF_INET){
-    return ntohs(((struct sockaddr_in*) addr)->sin_port);
-
-  } else if (addr->ss_family == AF_INET6){
-    return ntohs(((struct sockaddr_in6*) addr)->sin6_port);
-
-  } else {
-    return -1;
-  }
+int get_addr_port(struct sockaddr_in* addr) {
+  return ntohs(addr->sin_port);
 }

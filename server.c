@@ -12,10 +12,10 @@
 #include "server.h"
 #include "buf.h"
 
-static void new_conn_log(uv_tcp_t* client, struct sockaddr_storage* orig_dst, struct sockaddr_storage* orig_src) {
+static void new_conn_log(uv_tcp_t* client, struct sockaddr_in* orig_dst, struct sockaddr_in* orig_src) {
   char orig_dst_str[INET6_ADDRSTRLEN], orig_src_str[INET6_ADDRSTRLEN];
-  get_addr_str(orig_dst, orig_dst_str);
-  get_addr_str(orig_src, orig_src_str);
+  uv_ip4_name(orig_dst, orig_dst_str, INET6_ADDRSTRLEN);
+  uv_ip4_name(orig_src, orig_src_str, INET6_ADDRSTRLEN);
   fprintf(stderr, "%p: + C:%d %s:%d to %s:%d\n",
     client->data, get_session_count(), orig_src_str, get_addr_port(orig_src), orig_dst_str, get_addr_port(orig_dst));
 }
@@ -105,10 +105,10 @@ static void new_connection_cb(uv_stream_t* server, int status) {
 
   int local_fd = uv_get_fd((uv_handle_t *) client);
 
-  struct sockaddr_storage orig_dst, orig_src;
+  struct sockaddr_in orig_dst, orig_src;
   SYS_CHECK_GOTO("get original dst addr", close_conn, get_org_dst_addr(local_fd, &orig_dst));
 
-  int orig_src_len = sizeof(struct sockaddr_storage);
+  int orig_src_len = sizeof(struct sockaddr_in);
   UV_CHECK_GOTO("uv_tcp_getpeername", close_conn, uv_tcp_getpeername(client, (struct sockaddr *) &orig_src, &orig_src_len));
 
   new_conn_log(client, &orig_dst, &orig_src);

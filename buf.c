@@ -8,8 +8,8 @@
 
 #include "buf.h"
 
-#define BUF_BLOCK_SIZE 4*1024*1024
-#define BUF_BLOCK_FREE_THRESHOLD 8
+#define BUF_BLOCK_SIZE 1024*1024
+#define BUF_BLOCK_FREE_THRESHOLD 16
 
 buf_block* buf_block_free_head = NULL;
 size_t buf_block_free_count = 0;

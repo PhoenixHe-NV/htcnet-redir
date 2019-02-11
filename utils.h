@@ -11,9 +11,8 @@
 int uv_print_error(char* desc, int code);
 int uv_get_fd(uv_handle_t* handle);
 
-int get_addr_port(struct sockaddr_storage *addr);
-void get_addr_str(struct sockaddr_storage *addr, char *addr_str);
-int get_org_dst_addr(int sock_fd, struct sockaddr_storage *orig_dst);
+int get_addr_port(struct sockaddr_in* addr);
+int get_org_dst_addr(int sock_fd, struct sockaddr_in* orig_dst);
 
 #define UV_CHECK(desc, func_call) { \
   int ret = func_call;              \
