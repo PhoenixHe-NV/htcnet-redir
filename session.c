@@ -18,6 +18,10 @@ static void init_list(session_t* session_list) {
   session_list->prev = session_list;
 }
 
+static bool session_is_disposing(session_t* current) {
+  return current->prev == NULL && current->next == NULL;
+}
+
 static void add_session_to_tail(session_t* session_list, session_t* current) {
   session_t* prev = session_list->prev;
 
@@ -60,6 +64,10 @@ static void close_conn_cb_on_create1(uv_handle_t* uv_tcp) {
 }
 
 void session_touch(session_t* current) {
+  if (session_is_disposing(current)) {
+    return;
+  }
+
   remove_session_from_list(current);
   set_session_last_update(current);
   add_session_to_tail(&active_list, current);
@@ -101,8 +109,7 @@ session_create_error:
 }
 
 void session_end(session_t* current) {
-  if (current->prev == NULL && current->next == NULL) {
-    // Disposing
+  if (session_is_disposing(current)) {
     return;
   }
 
